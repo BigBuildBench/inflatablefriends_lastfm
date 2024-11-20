@@ -1,0 +1,31 @@
+name: Publish
+
+on:
+  push:
+    branches: [ release ]
+    paths-ignore:
+    - 'doc/**'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 6.0.x
+    - name: Install dependencies
+      run: dotnet restore IF.Lastfm.sln
+    - name: Build
+      run: dotnet build -c Release --no-restore IF.Lastfm.sln
+    - name: Test
+      run: dotnet test --no-restore IF.Lastfm.sln
+    - name: Pack
+      run: dotnet pack -c Release --no-build --include-source -o ./tmp IF.Lastfm.sln
+    - name: Publish
+      run: dotnet nuget push ./tmp/Inflatable.Lastfm*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json --skip-duplicate
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        path: ./tmp/*nupkg
